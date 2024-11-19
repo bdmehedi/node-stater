@@ -15,6 +15,7 @@
     "bullmq": "^5.27.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "express-validator": "^7.2.0",
     "ioredis": "^5.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"

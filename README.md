@@ -4,7 +4,7 @@ This is a node-starter setup. I used Express, TypeScript, and BullMQ for queue.
 
 ## Getting Started
 
-Clone the repository and navigate to the directory:
+Clone the repository :
 git clone https://github.com/bdmehedi/node-stater.git
 cd node-stater
 

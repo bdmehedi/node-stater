@@ -1,0 +1,7 @@
+.env
+dump.rdb
+node_modules
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+yarn.lock

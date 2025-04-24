@@ -1,6 +1,6 @@
 # BullMQ Task Scheduler
 
-A robust task scheduler system built with BullMQ and Redis that allows for long-running tasks with configurable durations. Tasks are added via HTTP API calls and remain active in Redis until explicitly removed or their TTL expires.
+A robust task scheduler system built with TypeScript, BullMQ, and Redis that allows for long-running tasks with configurable durations. Tasks are added via HTTP API calls and remain active in Redis until explicitly removed or their TTL expires.
 
 ## Features
 
@@ -10,9 +10,11 @@ A robust task scheduler system built with BullMQ and Redis that allows for long-
 - 📊 Visual dashboard for monitoring tasks
 - 🔄 Horizontal scaling with multiple workers
 - 🧩 Modular architecture inspired by Laravel
+- 🔐 Type safety with TypeScript
 
 ## Tech Stack
 
+- TypeScript
 - Node.js
 - Express.js
 - BullMQ
@@ -23,6 +25,7 @@ A robust task scheduler system built with BullMQ and Redis that allows for long-
 
 - Node.js (v14 or higher)
 - Redis server (local or remote)
+- TypeScript (v4.0 or higher)
 
 ## Installation
 
@@ -72,6 +75,11 @@ WORKER_RATE_LIMIT_DURATION=1000
 ```
 
 ## Running the Application
+
+### Build the TypeScript Code
+```bash
+npm run build
+```
 
 ### Start the Server and Worker Together
 ```bash
@@ -175,29 +183,39 @@ This provides a visual interface to monitor queues, jobs, and their statuses.
 ## Project Structure
 
 ```
-├── index.js                  # Application entry point
-├── worker.js                 # Standalone worker entry point
+├── index.ts                  # Application entry point
+├── worker.ts                 # Standalone worker entry point
 ├── src/
 │   ├── config/               # Configuration files
-│   │   └── index.js          # Centralized configuration
+│   │   └── index.ts          # Centralized configuration
 │   ├── controllers/          # Request handlers
-│   │   └── TaskController.js # Task operations controller
+│   │   └── TaskController.ts # Task operations controller
 │   ├── middleware/           # Express middleware
-│   │   ├── auth.js           # Authentication middleware
-│   │   └── errorHandler.js   # Global error handling
+│   │   ├── auth.ts           # Authentication middleware
+│   │   └── errorHandler.ts   # Global error handling
 │   ├── routes/               # API routes
-│   │   ├── index.js          # Route aggregator with versioning
-│   │   └── taskRoutes.js     # Task-specific routes
+│   │   ├── index.ts          # Route aggregator with versioning
+│   │   └── taskRoutes.ts     # Task-specific routes
 │   ├── services/             # Business logic
-│   │   └── TaskService.js    # Task operations service
-│   ├── queue.js              # BullMQ queue configuration
-│   ├── server.js             # Express server setup
-│   └── worker.js             # Worker process configuration
+│   │   └── TaskService.ts    # Task operations service
+│   ├── types.ts              # TypeScript type definitions
+│   ├── queue.ts              # BullMQ queue configuration
+│   ├── server.ts             # Express server setup
+│   └── worker.ts             # Worker process configuration
 ```
+
+## TypeScript Features
+
+This project leverages TypeScript for enhanced code quality and developer experience:
+
+- **Type Safety**: Prevents common runtime errors with compile-time checking
+- **Enhanced IDE Support**: Better autocomplete and inline documentation
+- **Interfaces**: Clear contracts for data structures like API responses and configurations
+- **Generics**: Type-safe queue and job operations
 
 ## Customizing the Worker
 
-To customize worker behavior, edit `src/worker.js` and implement your specific business logic in the job processing function.
+To customize worker behavior, edit `src/worker.ts` and implement your specific business logic in the job processing function.
 
 ## Error Handling
 

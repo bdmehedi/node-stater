@@ -2,8 +2,9 @@
  * Global error handling middleware
  * Provides consistent error responses across the application
  */
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { ApiResponse } from '../types';
+import logger from '../utils/logger';
 
 /**
  * Custom error class with status code support
@@ -33,9 +34,20 @@ export const errorHandler = (
   const message = err.message || 'Internal Server Error';
   
   // Log error details for server-side debugging
-  console.error(`[ERROR] ${statusCode} - ${message}`);
-  if (err.stack && process.env.NODE_ENV !== 'production') {
-    console.error(err.stack);
+  const errorLog = {
+    statusCode,
+    message,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+    body: statusCode >= 500 ? undefined : req.body, // Don't log body for server errors
+    stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined
+  };
+  
+  if (statusCode >= 500) {
+    logger.error(errorLog, `[ERROR] ${statusCode} - ${message}`);
+  } else {
+    logger.warn(errorLog, `[WARN] ${statusCode} - ${message}`);
   }
   
   // Return standardized error response

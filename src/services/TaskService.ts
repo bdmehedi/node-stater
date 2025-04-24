@@ -1,11 +1,10 @@
 /**
  * TaskService - Contains all business logic for task operations
  */
-import { Queue, Job, JobsOptions } from 'bullmq';
-import config from '../config';
+import { Job, JobsOptions } from 'bullmq';
+import { AppError } from '../middleware/errorHandler';
 import { taskQueue } from '../queue';
 import { TaskData } from '../types';
-import { AppError } from '../middleware/errorHandler';
 
 /**
  * Add a task to the queue

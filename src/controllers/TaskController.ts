@@ -3,9 +3,9 @@
  * Uses service layer for business logic and asyncHandler for error handling
  */
 import { Request, Response } from 'express';
+import { asyncHandler } from '../middleware/errorHandler';
 import TaskService from '../services/TaskService';
-import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { ApiResponse, TaskData } from '../types';
+import { ApiResponse } from '../types';
 
 /**
  * Add a new task to the queue

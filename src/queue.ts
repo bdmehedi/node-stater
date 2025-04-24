@@ -1,9 +1,8 @@
 /**
  * Queue configuration for BullMQ
  */
-import { Queue, ConnectionOptions } from 'bullmq';
+import { ConnectionOptions, Queue } from 'bullmq';
 import config from './config';
-import { RedisConfig } from './types';
 
 // Redis connection configuration from centralized config
 const connection: ConnectionOptions = {
@@ -21,6 +20,5 @@ const taskQueue = new Queue(config.queue.name, {
 });
 
 export {
-  taskQueue,
-  connection
+    connection, taskQueue
 };

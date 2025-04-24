@@ -1,11 +1,12 @@
 /**
  * Worker configuration for processing BullMQ jobs
  */
-import { Worker, Job } from 'bullmq';
+import { Job, Worker } from 'bullmq';
 import dotenv from 'dotenv';
-import { connection } from './queue';
 import config from './config';
-import { TaskData, JobResult } from './types';
+import { connection } from './queue';
+import { JobResult, TaskData } from './types';
+import logger from './utils/logger';
 
 dotenv.config();
 
@@ -13,12 +14,12 @@ dotenv.config();
 const worker = new Worker<TaskData, JobResult>(config.queue.name, async (job: Job<TaskData, JobResult>) => {
   try {
     // Log job start with structured logging
-    console.log(`[WORKER] Processing job ${job.id}`, {
+    logger.info({
       jobId: job.id,
       queueName: config.queue.name,
       data: job.data,
       timestamp: new Date().toISOString()
-    });
+    }, `[WORKER] Processing job ${job.id}`);
     
     // ----------------
     // Implement your actual job processing logic here
@@ -26,7 +27,7 @@ const worker = new Worker<TaskData, JobResult>(config.queue.name, async (job: Jo
     // 
     // 1. Extract data from the job
     const jobData = job.data;
-    console.log(`[WORKER] Processing data:`, jobData);
+    logger.debug({ jobData }, `[WORKER] Processing data for job ${job.id}`);
     
     // 2. Perform your business logic
     // await someBusinessLogicFunction(jobData);
@@ -38,7 +39,7 @@ const worker = new Worker<TaskData, JobResult>(config.queue.name, async (job: Jo
     // await new Promise(resolve => setTimeout(resolve, 1000));
     // ----------------
     
-    console.log(`[WORKER] Job ${job.id} is running. Will remain active until removed.`);
+    logger.info(`[WORKER] Job ${job.id} is running. Will remain active until removed.`);
     
     // Return a result that indicates the job is now running
     return { 
@@ -50,7 +51,15 @@ const worker = new Worker<TaskData, JobResult>(config.queue.name, async (job: Jo
     };
   } catch (error) {
     // Handle job-specific errors
-    console.error(`[WORKER] Error processing job ${job.id}:`, error);
+    const err = error as Error;
+    logger.error({
+      jobId: job.id,
+      error: {
+        message: err.message,
+        stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined
+      }
+    }, `[WORKER] Error processing job ${job.id}`);
+    
     throw error; // Re-throw to trigger the 'failed' event
   }
 }, { 
@@ -63,57 +72,90 @@ const worker = new Worker<TaskData, JobResult>(config.queue.name, async (job: Jo
     duration: parseInt(process.env.WORKER_RATE_LIMIT_DURATION || '1000')
   },
   // Enable auto-resuming of interrupted jobs on restart
-  autorun: true
+  autorun: true,
+  // In production, set a shorter stalledInterval to detect stalled jobs more quickly
+  stalledInterval: process.env.NODE_ENV === 'production' ? 30000 : 60000,
+  // Set a maximum number of retries for failed jobs
+  maxStalledCount: 3
 });
 
 // Event handlers with structured logging
 worker.on('completed', (job: Job<TaskData, JobResult>, result: JobResult) => {
-  console.log(`[WORKER] Job ${job.id} completed`, {
+  logger.info({
     jobId: job.id,
     result,
     timestamp: new Date().toISOString()
-  });
+  }, `[WORKER] Job ${job.id} completed`);
 });
 
 worker.on('failed', (job: Job<TaskData, JobResult> | undefined, error: Error) => {
   if (job) {
-    console.error(`[WORKER] Job ${job.id} failed`, {
+    logger.error({
       jobId: job.id,
       error: {
         message: error.message,
-        stack: error.stack
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
       },
       timestamp: new Date().toISOString()
-    });
+    }, `[WORKER] Job ${job.id} failed`);
   } else {
-    console.error('[WORKER] Job failed', {
+    logger.error({
       error: {
         message: error.message,
-        stack: error.stack
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
       },
       timestamp: new Date().toISOString()
-    });
+    }, '[WORKER] Job failed');
   }
 });
 
 worker.on('error', (error: Error) => {
-  console.error('[WORKER] Worker error', {
+  logger.error({
     error: {
       message: error.message,
-      stack: error.stack
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
     },
     timestamp: new Date().toISOString()
-  });
+  }, '[WORKER] Worker error');
+});
+
+// Additional events for better monitoring
+worker.on('stalled', (jobId: string) => {
+  logger.warn({ jobId }, '[WORKER] Job stalled');
+});
+
+worker.on('progress', (job: Job<TaskData, JobResult>, progress: any) => {
+  logger.debug({ jobId: job.id, progress }, '[WORKER] Job progress updated');
 });
 
 // Graceful shutdown handler
 const gracefulShutdown = async (): Promise<void> => {
-  console.log('[WORKER] Shutting down gracefully...');
-  await worker.close();
+  logger.info('[WORKER] Shutting down gracefully...');
+  
+  // Gracefully close the worker
+  try {
+    await worker.close();
+    logger.info('[WORKER] Closed successfully');
+  } catch (err) {
+    logger.error({ err }, '[WORKER] Error during shutdown');
+  }
 };
 
 // Handle shutdown signals
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+
+// Handle uncaught exceptions specific to the worker
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, '[WORKER] Uncaught exception');
+  // Exit with non-zero code to indicate error
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.fatal({ reason, promise }, '[WORKER] Unhandled rejection');
+  // Exit with non-zero code to indicate error
+  process.exit(1);
+});
 
 export default worker;

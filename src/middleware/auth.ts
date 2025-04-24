@@ -1,7 +1,7 @@
 /**
  * Authentication middleware to verify API tokens
  */
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import config from '../config';
 import { AppError } from './errorHandler';
 

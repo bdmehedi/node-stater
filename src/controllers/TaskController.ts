@@ -11,10 +11,17 @@ import { ApiResponse } from '../types';
  * Add a new task to the queue
  */
 const createTask = asyncHandler(async (req: Request, res: Response) => {
-  const { data, duration } = req.body;
+  if (!req.body) {
+    return res.status(400).json({
+      status: 'fail',
+      message: 'Request body is required'
+    });
+  }
+
+  const { data, jobId, delay } = req.body;
   
   // Use service layer to add task
-  const job = await TaskService.addTask(data, duration);
+  const job = await TaskService.addTask(data, jobId, delay);
   
   // Format and return response
   const response: ApiResponse = {
@@ -23,7 +30,6 @@ const createTask = asyncHandler(async (req: Request, res: Response) => {
     data: {
       jobId: job.id,
       taskData: job.data,
-      duration: `${duration || 3600} seconds`,
     }
   };
   

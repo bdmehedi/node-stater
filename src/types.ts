@@ -15,6 +15,7 @@ export interface RedisConfig {
 export interface ServerConfig {
   port: number;
   environment: string;
+  showRequestLogs: boolean;
 }
 
 // Queue configuration
@@ -38,6 +39,15 @@ export interface DashboardConfig {
   basePath: string;
 }
 
+export interface JobsConfig {
+  removeOnComplete: object;
+  removeOnFail: object;
+  attempts: number;
+  backoff: object;
+  timeout: number;
+  limiter: object;
+}
+
 // Application configuration
 export interface AppConfig {
   server: ServerConfig;
@@ -45,6 +55,7 @@ export interface AppConfig {
   queue: QueueConfig;
   security: SecurityConfig;
   dashboard: DashboardConfig;
+  jobs: JobsConfig;
 }
 
 // Task job data

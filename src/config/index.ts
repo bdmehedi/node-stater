@@ -12,6 +12,7 @@ const config: AppConfig = {
   server: {
     port: parseInt(process.env.PORT || '3000'),
     environment: process.env.NODE_ENV || 'development',
+    showRequestLogs: process.env.SHOW_REQUEST_LOGS === 'true',
   },
   
   // Redis configuration
@@ -42,7 +43,31 @@ const config: AppConfig = {
   // Dashboard configuration
   dashboard: {
     basePath: '/admin/queues',
-  }
+  },
+
+  // Jobs settings
+  jobs: {
+    removeOnComplete: {
+      age: 5 * 3600, // 5 hours in seconds
+      count: 200,
+    },
+    removeOnFail: {
+      age: 5 * 3600, // 5 hours in seconds
+      count: 200,
+    },
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 5000,
+    },
+    timeout: parseInt(process.env.JOB_TIMEOUT || '') || 60000, // 1 minute
+    limiter: {
+      max: 1000,
+      duration: 1000,
+      groupKey: 'task',
+      group: 'task',
+    },
+  },
 };
 
 export default config;

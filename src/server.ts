@@ -49,25 +49,29 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Add request logging
-app.use((req: Request, res: Response, next: NextFunction) => {
-  logger.info({
-    method: req.method,
-    url: req.url,
-    ip: req.ip,
-    userAgent: req.get('user-agent')
-  }, 'Incoming request');
-  
-  // Log response when finished
-  res.on('finish', () => {
+if (config.server.showRequestLogs) {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     logger.info({
       method: req.method,
       url: req.url,
-      statusCode: res.statusCode
-    }, 'Request completed');
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    }, 'Incoming request\n');
+    
+    // Log response when finished
+    res.on('finish', () => {
+      logger.info({
+        method: req.method,
+        url: req.url,
+        statusCode: res.statusCode,
+      }, 'Request completed');
+    });
+
+    console.log('\n');
+    
+    next();
   });
-  
-  next();
-});
+}
 
 // Set up Bull Board (dashboard)
 const serverAdapter = new ExpressAdapter();
@@ -157,8 +161,8 @@ process.on('SIGINT', gracefulShutdown);
 // Start the server
 const startServer = (): http.Server => {
   const server = app.listen(config.server.port, () => {
-    logger.info(`Server running in ${config.server.environment} mode on port ${config.server.port}`);
-    logger.info(`Bull Dashboard available at http://localhost:${config.server.port}${config.dashboard.basePath}`);
+    // logger.info(`Server running in ${config.server.environment} mode on port ${config.server.port}`);
+    // logger.info(`Bull Dashboard available at http://localhost:${config.server.port}${config.dashboard.basePath}`);
   });
   
   return server;

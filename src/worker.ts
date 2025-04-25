@@ -4,6 +4,7 @@
 import { Job, Worker } from 'bullmq';
 import dotenv from 'dotenv';
 import config from './config';
+import jobList from './jobs/jobList';
 import { connection } from './queue';
 import { JobResult, TaskData } from './types';
 import logger from './utils/logger';
@@ -14,39 +15,49 @@ dotenv.config();
 const worker = new Worker<TaskData, JobResult>(config.queue.name, async (job: Job<TaskData, JobResult>) => {
   try {
     // Log job start with structured logging
-    logger.info({
-      jobId: job.id,
-      queueName: config.queue.name,
-      data: job.data,
-      timestamp: new Date().toISOString()
-    }, `[WORKER] Processing job ${job.id}`);
+    // logger.info({
+    //   jobId: job.id,
+    //   queueName: config.queue.name,
+    //   data: job.data,
+    //   timestamp: new Date().toISOString()
+    // }, `[WORKER] Processing job ${job.id}`);
     
     // ----------------
     // Implement your actual job processing logic here
     // For example:
     // 
     // 1. Extract data from the job
-    const jobData = job.data;
-    logger.debug({ jobData }, `[WORKER] Processing data for job ${job.id}`);
+    const {functionName, campaign_id, site_id, email_id} = job.data;
+    let runningJobName = '';
+    
+    for (const job of jobList) {
+      // Checking the job.name == functionName and the job has handle method
+      if (job.name === functionName && typeof job.prototype.handle === 'function') {
+        await new job(site_id, campaign_id, email_id).handle();
+        runningJobName = job.name;
+        break;
+      }
+    }
     
     // 2. Perform your business logic
     // await someBusinessLogicFunction(jobData);
     
     // 3. Update job progress (optional)
-    await job.updateProgress(50);
+    // await job.updateProgress(50);
     
     // 4. Simulate some processing time
     // await new Promise(resolve => setTimeout(resolve, 1000));
     // ----------------
     
-    logger.info(`[WORKER] Job ${job.id} is running. Will remain active until removed.`);
+    // logger.info(`[WORKER] Job ${job.id} is running. Will remain active until removed.`);
     
     // Return a result that indicates the job is now running
     return { 
       status: 'running', 
       startedAt: new Date().toISOString(),
       metadata: {
-        processedBy: 'worker-' + process.pid
+        processedBy: 'worker-' + process.pid,
+        jobName: runningJobName || 'No job found',
       }
     };
   } catch (error) {
@@ -58,7 +69,7 @@ const worker = new Worker<TaskData, JobResult>(config.queue.name, async (job: Jo
         message: err.message,
         stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined
       }
-    }, `[WORKER] Error processing job ${job.id}`);
+    }, `[WORKER] Error processing job ${job.id} \n`);
     
     throw error; // Re-throw to trigger the 'failed' event
   }

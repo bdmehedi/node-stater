@@ -5,33 +5,45 @@ import { Job, JobsOptions } from 'bullmq';
 import { AppError } from '../middleware/errorHandler';
 import { taskQueue } from '../queue';
 import { TaskData } from '../types';
+import config from '../config/index';
 
 /**
  * Add a task to the queue
  * @param data - The task data
- * @param duration - Duration in seconds task should remain in Redis
+ * @param jobId - Optional custom job ID for replacement
+ * @param delay - Optional delay in milliseconds before the job is processed
  * @returns The created job
  */
-const addTask = async (data: TaskData, duration?: number): Promise<Job<TaskData>> => {
+const addTask = async (
+  data: TaskData, 
+  jobId?: string,
+  delay?: number
+): Promise<Job<TaskData>> => {
   if (!data) {
     throw new AppError('Task data is required', 400);
   }
   
-  // Use default duration if not provided
-  const jobDuration = duration ? parseInt(duration.toString()) : 3600;
-  
   // Create a job with options including duration
   const jobOptions: JobsOptions = {
-    jobId: `task-${Date.now()}`,
-    removeOnComplete: false,
-    removeOnFail: false,
+    jobId: jobId || `task-${Date.now()}`,
+    removeOnComplete: config.jobs.removeOnComplete,
+    removeOnFail: config.jobs.removeOnFail,
   };
+
+  // Remove existing job if jobId is provided
+  if (jobId) {
+    const existingJob = await taskQueue.getJob(jobId);
+    if (existingJob) {
+      await existingJob.remove();
+    }
+  }
   
-  // BullMQ doesn't directly support TTL in JobsOptions type
-  // We need to add it to the options object manually
-  (jobOptions as any).ttl = jobDuration * 1000;  // Convert to milliseconds
+  // Add delay if provided
+  if (delay && delay > 0) {
+    jobOptions.delay = delay;
+  }
   
-  // Create a job with settings based on duration
+  // Create a job with settings based on duration and delay
   return await taskQueue.add('task', data, jobOptions);
 };
 
